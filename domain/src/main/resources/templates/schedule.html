@@ -17,13 +17,9 @@
     <th th:each="s : ${shifts}" th:text="${s}"></th>
   </tr>
 
-  <tr th:each="day : ${days}">
-    <td th:text="${day}"></td>
-
-    <!-- ✅ Always safe even if schedule is empty -->
-    <td th:each="s : ${shifts}"
-        th:text="${schedule[day][s]}">
-    </td>
+  <tr th:each="row : ${schedule}">
+    <td th:text="${row.day}"></td>
+    <td th:each="s : ${shifts}" th:text="${row.shiftCells.get(s.name())}"></td>
   </tr>
 </table>
 

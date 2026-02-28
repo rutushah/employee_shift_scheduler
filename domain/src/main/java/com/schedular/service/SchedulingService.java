@@ -12,7 +12,6 @@ import java.util.*;
 @Service
 public class SchedulingService {
 
-    // Same logic as your console solution
     private static final int SHIFT_CAPACITY = 2;
     private static final int MIN_EMPLOYEES_PER_SHIFT = 2;
     private static final int MAX_DAYS_PER_EMPLOYEE = 5;
@@ -35,19 +34,15 @@ public class SchedulingService {
 
         List<Employee> employees = employeeRepo.findAll();
 
-        // employeeId -> day -> ordered shifts (ranked preference order)
         Map<Long, EnumMap<Day, List<Shift>>> prefs = loadPreferences(employees);
 
-        // day -> shift -> employees assigned
         EnumMap<Day, EnumMap<Shift, List<Employee>>> schedule = initEmptySchedule();
 
-        // employeeId -> day -> assigned shift (prevents >1 shift/day + tracks max 5 days)
         Map<Long, EnumMap<Day, Shift>> assignedByEmp = new HashMap<>();
         for (Employee e : employees) {
             assignedByEmp.put(e.getId(), new EnumMap<>(Day.class));
         }
 
-        // Pass 1: preference assignment with conflict resolution
         for (Employee e : employees) {
             for (Day day : Day.values()) {
                 if (assignedByEmp.get(e.getId()).size() >= MAX_DAYS_PER_EMPLOYEE) break;
@@ -55,17 +50,11 @@ public class SchedulingService {
             }
         }
 
-        // Pass 2: ensure minimum staffing using random fill
         ensureMinimumStaffing(schedule, assignedByEmp, employees, new Random());
 
-        // Persist final schedule
         persist(schedule);
     }
 
-    /**
-     * Builds ranked preference list for each day for each employee.
-     * If user stored only rank=1, we append missing shifts to the end.
-     */
     private Map<Long, EnumMap<Day, List<Shift>>> loadPreferences(List<Employee> employees) {
         Map<Long, EnumMap<Day, List<Shift>>> prefs = new HashMap<>();
 
@@ -73,13 +62,11 @@ public class SchedulingService {
             EnumMap<Day, List<Shift>> map = new EnumMap<>(Day.class);
             for (Day d : Day.values()) map.put(d, new ArrayList<>());
 
-            // Pull from DB
             List<ShiftPreference> rows = shiftRepo.findByEmployeeIdOrderByDayAscRankAsc(e.getId());
             for (ShiftPreference p : rows) {
                 map.get(p.getDay()).add(p.getShift());
             }
 
-            // Ensure each day has full ordering of shifts
             for (Day d : Day.values()) {
                 List<Shift> list = map.get(d);
                 for (Shift s : Shift.values()) {
@@ -107,11 +94,6 @@ public class SchedulingService {
         return !assigned.containsKey(day) && assigned.size() < MAX_DAYS_PER_EMPLOYEE;
     }
 
-    /**
-     * Conflict resolution:
-     * - Try preferred shifts same day (in preference order)
-     * - If full, try next days (same preference order for that next day)
-     */
     private void attemptAssignWithConflictResolution(
             Employee emp,
             Day day,
@@ -123,12 +105,10 @@ public class SchedulingService {
 
         List<Shift> prefList = prefs.get(emp.getId()).get(day);
 
-        // Same day attempt (preference order)
         for (Shift s : prefList) {
             if (tryAssign(emp, day, s, schedule, assignedByEmp)) return;
         }
 
-        // Next day(s)
         for (int i = day.ordinal() + 1; i < Day.values().length; i++) {
             Day nextDay = Day.values()[i];
             if (!isAvailable(emp, nextDay, assignedByEmp)) continue;
@@ -150,7 +130,7 @@ public class SchedulingService {
         if (!isAvailable(emp, day, assignedByEmp)) return false;
 
         List<Employee> slot = schedule.get(day).get(shift);
-        if (slot.size() >= SHIFT_CAPACITY) return false; // "full"
+        if (slot.size() >= SHIFT_CAPACITY) return false;
 
         slot.add(emp);
         assignedByEmp.get(emp.getId()).put(day, shift);
@@ -193,12 +173,13 @@ public class SchedulingService {
     }
 
     /**
-     * For GUI display: Day -> Shift -> List<EmployeeName>
+     * For GUI display: List of rows, each row has day + pre-joined strings per shift.
+     * Avoids complex Thymeleaf expressions.
      */
-    public EnumMap<Day, EnumMap<Shift, List<String>>> getScheduleView() {
-        EnumMap<Day, EnumMap<Shift, List<String>>> view = new EnumMap<>(Day.class);
+    public List<ScheduleRow> getScheduleView() {
+        Map<Day, Map<Shift, List<String>>> view = new LinkedHashMap<>();
         for (Day day : Day.values()) {
-            EnumMap<Shift, List<String>> shiftMap = new EnumMap<>(Shift.class);
+            Map<Shift, List<String>> shiftMap = new LinkedHashMap<>();
             for (Shift shift : Shift.values()) {
                 shiftMap.put(shift, new ArrayList<>());
             }
@@ -210,6 +191,33 @@ public class SchedulingService {
             view.get(a.getDay()).get(a.getShift()).add(a.getEmployee().getName());
         }
 
-        return view;
+        List<ScheduleRow> rows = new ArrayList<>();
+        for (Day day : Day.values()) {
+            Map<String, String> cells = new LinkedHashMap<>();
+            for (Shift shift : Shift.values()) {
+                List<String> names = view.get(day).get(shift);
+                cells.put(shift.name(), names.isEmpty() ? "" : String.join(", ", names));
+            }
+            rows.add(new ScheduleRow(day, cells));
+        }
+        return rows;
+    }
+
+    public record ScheduleRow(Day day, Map<String, String> shiftCells) {}
+
+    /**
+     * For preferences form: employeeId -> day -> rank -> shift
+     */
+    public Map<Long, Map<String, Map<Integer, String>>> getPreferencesByEmployee() {
+        Map<Long, Map<String, Map<Integer, String>>> result = new HashMap<>();
+        for (Employee e : employeeRepo.findAll()) {
+            Map<String, Map<Integer, String>> byDay = new HashMap<>();
+            for (ShiftPreference p : shiftRepo.findByEmployeeIdOrderByDayAscRankAsc(e.getId())) {
+                byDay.computeIfAbsent(p.getDay().name(), k -> new HashMap<>())
+                        .put(p.getRank(), p.getShift().name());
+            }
+            result.put(e.getId(), byDay);
+        }
+        return result;
     }
 }

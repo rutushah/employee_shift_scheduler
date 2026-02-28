@@ -8,6 +8,7 @@ import com.schedular.repo.EmployeeRepository;
 import com.schedular.repo.ShiftRepository;
 import com.schedular.service.SchedulingService;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,6 +54,7 @@ public class SchedulerController {
         model.addAttribute("employees", employeeRepository.findAll());
         model.addAttribute("days", Day.values());
         model.addAttribute("shifts", Shift.values());
+        model.addAttribute("existingPrefs", schedulingService.getPreferencesByEmployee());
         return "preferences";
     }
 
@@ -61,6 +63,7 @@ public class SchedulerController {
      * Form fields expected: pref1_MON, pref2_MON, pref3_MON ... for all days
      */
     @PostMapping("/preferences/{employeeId}")
+    @Transactional
     public String savePreferences(@PathVariable Long employeeId,
                                   @RequestParam Map<String, String> params) {
 
@@ -69,25 +72,36 @@ public class SchedulerController {
         // Remove old prefs
         shiftPreferenceRepository.deleteByEmployee(emp);
 
-        // Save new prefs
+        // Save new prefs (with null-safe parsing)
         for (Day day : Day.values()) {
-            Shift s1 = Shift.valueOf(params.get("pref1_" + day.name()));
-            Shift s2 = Shift.valueOf(params.get("pref2_" + day.name()));
-            Shift s3 = Shift.valueOf(params.get("pref3_" + day.name()));
+            Shift s1 = parseShift(params.get("pref1_" + day.name()));
+            Shift s2 = parseShift(params.get("pref2_" + day.name()));
+            Shift s3 = parseShift(params.get("pref3_" + day.name()));
 
-            shiftPreferenceRepository.save(new ShiftPreference(emp, day, 1, s1));
-            shiftPreferenceRepository.save(new ShiftPreference(emp, day, 2, s2));
-            shiftPreferenceRepository.save(new ShiftPreference(emp, day, 3, s3));
+            if (s1 != null && s2 != null && s3 != null) {
+                shiftPreferenceRepository.save(new ShiftPreference(emp, day, 1, s1));
+                shiftPreferenceRepository.save(new ShiftPreference(emp, day, 2, s2));
+                shiftPreferenceRepository.save(new ShiftPreference(emp, day, 3, s3));
+            }
         }
 
         return "redirect:/preferences";
     }
 
+    private Shift parseShift(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Shift.valueOf(value.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
     @GetMapping("/schedule")
     public String schedule(Model model) {
         model.addAttribute("days", Day.values());
-        model.addAttribute("shifts", Shift.values()); // ✅ important for the table loop
-        model.addAttribute("schedule", schedulingService.getScheduleView()); // ✅ safe view map
+        model.addAttribute("shifts", Shift.values());
+        model.addAttribute("schedule", schedulingService.getScheduleView());
         return "schedule";
     }
 

@@ -34,20 +34,23 @@
         <td th:text="${d}"></td>
 
         <td>
-          <select th:name="${'pref1_' + d}">
-            <option th:each="s : ${shifts}" th:value="${s}" th:text="${s}"></option>
+          <select th:name="${'pref1_' + d.name()}">
+            <option th:each="s : ${shifts}" th:value="${s.name()}" th:text="${s}"
+                    th:selected="${existingPrefs != null and existingPrefs.get(emp.id) != null and existingPrefs.get(emp.id).get(d.name()) != null and existingPrefs.get(emp.id).get(d.name()).get(1) == s.name()}"></option>
           </select>
         </td>
 
         <td>
-          <select th:name="${'pref2_' + d}">
-            <option th:each="s : ${shifts}" th:value="${s}" th:text="${s}"></option>
+          <select th:name="${'pref2_' + d.name()}">
+            <option th:each="s : ${shifts}" th:value="${s.name()}" th:text="${s}"
+                    th:selected="${existingPrefs != null and existingPrefs.get(emp.id) != null and existingPrefs.get(emp.id).get(d.name()) != null and existingPrefs.get(emp.id).get(d.name()).get(2) == s.name()}"></option>
           </select>
         </td>
 
         <td>
-          <select th:name="${'pref3_' + d}">
-            <option th:each="s : ${shifts}" th:value="${s}" th:text="${s}"></option>
+          <select th:name="${'pref3_' + d.name()}">
+            <option th:each="s : ${shifts}" th:value="${s.name()}" th:text="${s}"
+                    th:selected="${existingPrefs != null and existingPrefs.get(emp.id) != null and existingPrefs.get(emp.id).get(d.name()) != null and existingPrefs.get(emp.id).get(d.name()).get(3) == s.name()}"></option>
           </select>
         </td>
       </tr>

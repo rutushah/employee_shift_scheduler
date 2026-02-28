@@ -1,0 +1,3 @@
+# Employee Shift Scheduler - Python
+# Uses only standard library (tkinter for GUI - included with Python)
+# No external dependencies required for basic functionality.

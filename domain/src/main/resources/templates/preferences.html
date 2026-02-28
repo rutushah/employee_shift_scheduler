@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Preferences</title>
+  <style>
+    body { font-family: Arial; margin: 24px; }
+    .nav a { margin-right: 14px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin: 14px 0; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #eee; padding: 8px; }
+    select { width: 140px; }
+  </style>
+</head>
+<body>
+<div class="nav">
+  <a href="/employees">Employees</a>
+  <a href="/preferences">Preferences</a>
+  <a href="/schedule">Schedule</a>
+</div>
+
+<h2>Shift Preferences (Ranked)</h2>
+<p>Choose Rank 1, Rank 2, Rank 3 for each day.</p>
+
+<div th:each="emp : ${employees}" class="card">
+  <h3 th:text="${emp.name}"></h3>
+
+  <form th:action="@{/preferences/{id}(id=${emp.id})}" method="post">
+    <table>
+      <tr>
+        <th>Day</th><th>Rank 1</th><th>Rank 2</th><th>Rank 3</th>
+      </tr>
+
+      <tr th:each="d : ${days}">
+        <td th:text="${d}"></td>
+
+        <td>
+          <select th:name="${'pref1_' + d}">
+            <option th:each="s : ${shifts}" th:value="${s}" th:text="${s}"></option>
+          </select>
+        </td>
+
+        <td>
+          <select th:name="${'pref2_' + d}">
+            <option th:each="s : ${shifts}" th:value="${s}" th:text="${s}"></option>
+          </select>
+        </td>
+
+        <td>
+          <select th:name="${'pref3_' + d}">
+            <option th:each="s : ${shifts}" th:value="${s}" th:text="${s}"></option>
+          </select>
+        </td>
+      </tr>
+    </table>
+
+    <button type="submit" style="margin-top:10px;">Save Preferences</button>
+  </form>
+</div>
+
+</body>
+</html>

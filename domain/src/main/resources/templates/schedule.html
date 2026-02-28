@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Schedule</title>
+</head>
+<body>
+
+<h1>Weekly Schedule</h1>
+
+<form action="/schedule/generate" method="post">
+  <button type="submit">Generate Schedule</button>
+</form>
+
+<table border="1">
+  <tr>
+    <th>Day</th>
+    <th th:each="s : ${shifts}" th:text="${s}"></th>
+  </tr>
+
+  <tr th:each="day : ${days}">
+    <td th:text="${day}"></td>
+
+    <!-- ✅ Always safe even if schedule is empty -->
+    <td th:each="s : ${shifts}"
+        th:text="${schedule[day][s]}">
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

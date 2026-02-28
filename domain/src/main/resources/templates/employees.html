@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Employees</title>
+    <style>
+      body { font-family: Arial; margin: 24px; }
+      .nav a { margin-right: 14px; }
+      table { border-collapse: collapse; width: 420px; margin-top: 14px; }
+      th, td { border: 1px solid #ddd; padding: 10px; }
+    </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="/employees">Employees</a>
+    <a href="/preferences">Preferences</a>
+    <a href="/schedule">Schedule</a>
+  </div>
+
+  <h2>Employees</h2>
+
+  <form method="post" action="/employees">
+    <input name="name" placeholder="Employee name" required />
+    <button type="submit">Add</button>
+  </form>
+
+  <table>
+    <tr><th>ID</th><th>Name</th></tr>
+    <tr th:each="e : ${employees}">
+      <td th:text="${e.id}"></td>
+      <td th:text="${e.name}"></td>
+    </tr>
+  </table>
+</body>
+</html>
